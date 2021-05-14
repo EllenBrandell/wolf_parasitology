@@ -32,9 +32,9 @@ summary(data)
 ###### MODEL COMPONENTS
 ## the model is a Bayesian hierarchical model; response = genotype success, Binomial
 
-################################### START WITH A BASIC MODEL WITH DEFAULT PARAMETERS
+######################## START WITH A BASIC MODEL WITH DEFAULT PARAMETERS ########################
 mod0 <- brm(formula= geno_success ~ cover + high_temp_mean + (1|group),
-            data=data, family=bernoulli(link = "logit"))
+            data=data, family=bernoulli(link="logit"))
 summary(mod0)
 posterior_summary(mod0, probs=c(.025, .25, .75, .975))
 plot(mod0)
@@ -130,13 +130,25 @@ post %>%
 
 
 
-################################### ADDING SPECIFICATIONS TO MODEL
+
+
+
+######################## ADDING SPECIFICATIONS TO MODEL ########################
+## see which parameters can have priors
+get_prior(formula= geno_success ~ cover + high_temp_mean + (1|group),
+    data=data, family=bernoulli(link="logit"))
+
 
 ## PRIORS
 prior.list <- c(prior(normal(0,10), class=Intercept),
-                prior(normal(0,10), class=b, coef=cover),
+                prior(normal(0,10), class=b, coef=cover1),
                 prior(normal(0,10), class=b, coef=high_temp_mean),
-                prior(uniform(0,20), class=sd, group=group, coef=group) )
+                prior(uniform(0,20), class=sd, group=group) ) # , ub=NA
+# having trouble setting a uniform prior on my group RE 
+# prior.list <- c(prior(normal(0,10), class=Intercept),
+#                 prior(normal(0,10), class=b, coef=cover1),
+#                 prior(normal(0,10), class=b, coef=high_temp_mean),
+#                 set_prior("uniform(0,20)", lb=0, ub=20, class="sd", group="group") )
 
 ## MCMC setting
 nburn <- 5000
@@ -145,10 +157,13 @@ nchains <- 3
 
 ###### RUN MODEL
 mod1 <- brm(formula= geno_success ~ cover + high_temp_mean + (1|group),
-                data=data, family=bernoulli,
+                data=data, family=bernoulli(link="logit"),
                 prior=prior.list,
                 warmup=nburn, iter=niter, chains=nchains)
 
+summary(mod1)
+posterior_summary(mod1, probs=c(.025, .25, .75, .975))
+plot(mod1)
 
 
 
@@ -156,34 +171,6 @@ mod1 <- brm(formula= geno_success ~ cover + high_temp_mean + (1|group),
 
 
 
-
-
-
-
-
-
-################################### FULL MODEL
-
-
-## PRIORS
-prior.list <- c(set_prior("normal(0,10)", class="b", coef="cover"),
-                set_prior("normal(0,10)", class="b", coef="high_temp_mean"),
-                set_prior("lognormal(0,10)", class="b", coef="total_precip"),
-                set_prior("normal(0,10)", class="b", coef="collection_period"),
-                set_prior("normal(0,10)", class="b", coef="days_elapsed"),
-                set_prior("normal(0,20)", class="b", coef="group"))
-
-## MCMC setting
-nburn <- 5000
-niter <- 10000
-nchains <- 3
-
-
-###### RUN MODEL
-full.mod <- brm(formula= geno_success ~ cover + high_temp_mean*days_elapsed + total_precip + (1|group),
-            data=data, family=bernoulli,
-            prior=prior.list,
-            warmup=nburn, iter=niter, chains=nchains)
 
 
 
