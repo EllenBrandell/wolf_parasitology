@@ -1,13 +1,13 @@
 ## Ellen Brandell
 ## May 2021
 
-
-# GOAL: initial modeling for *genotype success model* in Bayesian framework
+## GOAL: initial modeling for *genotype success model* in Bayesian framework
 
 # load libraries for analysis
 library(brms) # Bayesian model
 library(sjstats) # calculate intra-class correlation (ICC)
 library(tidybayes) # for analysis of posterior draws of a Bayesian model
+library(reshape2)
 # load libraries for plotting
 library(tidyverse)
 library(viridis)
@@ -18,7 +18,7 @@ library(bayesplot) # for plotting posterior draws of a Bayesian model
 data.all <- read.csv("success_data_all.csv")
 # keep variables of interest
 vars <- c("scat_id","geno_success","days_elapsed","cover","collection_period","high_temp_mean","total_precip","group")
-data <- data.all[,colnames(data) %in% vars]
+data <- data.all[,colnames(data.all) %in% vars]
 # make sure variables are correct class
 data <- data %>% mutate_at(vars("scat_id","cover","collection_period","group"), as.factor)
             # cover 0:open, 1:covered.
@@ -34,7 +34,7 @@ summary(data)
 
 ######################## START WITH A BASIC MODEL WITH DEFAULT PARAMETERS ########################
 mod0 <- brm(formula= geno_success ~ cover + high_temp_mean + (1|group),
-            data=data, family=bernoulli(link="logit"))
+            data=data, family=bernoulli(link="logit"), sample_prior=T)
 summary(mod0)
 posterior_summary(mod0, probs=c(.025, .25, .75, .975))
 plot(mod0)
@@ -100,29 +100,29 @@ post %>%
        x    =expression(beta)) +
   theme(panel.grid=element_blank()) +
   vline_0()
-
 post %>% 
   ggplot(aes(x=b_cover1, y=0)) +
   stat_halfeye(point_interval=mode_hdi, .width=c(.95, .5)) +
   scale_y_continuous(NULL, breaks=NULL) +
-  labs(title="Cover: covered",
+  labs(title="Covered",
        x    =expression(beta)) +
   theme(panel.grid=element_blank()) +
   vline_0()
-
 post %>% 
   ggplot(aes(x=b_high_temp_mean, y=0)) +
   stat_halfeye(point_interval=mode_hdi, .width=c(.95, .5)) +
   scale_y_continuous(NULL, breaks=NULL) +
-  labs(title="Mean high temperature",
+  labs(title="Mean high temperature (F)",
        x    =expression(beta)) +
   theme(panel.grid=element_blank()) +
   vline_0()
 
 
 ################################### SAMPLE FROM PRIOR DISTRIBUTION
+prior <- prior_samples(mod0)
+head(prior)
 
-
+# doesn't make a ton of sense with the defaults ?
 
 
 
@@ -140,15 +140,11 @@ get_prior(formula= geno_success ~ cover + high_temp_mean + (1|group),
 
 
 ## PRIORS
+# it was a bit tricky to get the syntax for the random effect correct here
 prior.list <- c(prior(normal(0,10), class=Intercept),
                 prior(normal(0,10), class=b, coef=cover1),
                 prior(normal(0,10), class=b, coef=high_temp_mean),
-                prior(uniform(0,20), class=sd, group=group) ) # , ub=NA
-# having trouble setting a uniform prior on my group RE 
-# prior.list <- c(prior(normal(0,10), class=Intercept),
-#                 prior(normal(0,10), class=b, coef=cover1),
-#                 prior(normal(0,10), class=b, coef=high_temp_mean),
-#                 set_prior("uniform(0,20)", lb=0, ub=20, class="sd", group="group") )
+                prior_string("uniform(0, 20)", class="sd", coef="Intercept", group="group", ub=NA) )
 
 ## MCMC setting
 nburn <- 5000
@@ -158,21 +154,67 @@ nchains <- 3
 ###### RUN MODEL
 mod1 <- brm(formula= geno_success ~ cover + high_temp_mean + (1|group),
                 data=data, family=bernoulli(link="logit"),
-                prior=prior.list,
+                prior=prior.list, sample_prior=T,
                 warmup=nburn, iter=niter, chains=nchains)
 
 summary(mod1)
-posterior_summary(mod1, probs=c(.025, .25, .75, .975))
+head(posterior_summary(mod1, probs=c(.025, .25, .75, .975)))
 plot(mod1)
 
 
+################################### PARAMETER ESTIMATES
+posterior1 <- as.array(mod1)
+head(posterior1)
+post1 <- posterior_samples(mod1, add_chain=T)
+head(post1)
+summary(post1$chain)
+
+################################### SAMPLE FROM PRIOR DISTRIBUTION
+prior1 <- prior_samples(mod1)
+head(prior1)
+
+prior1 %>% 
+  rename(Intercept        = Intercept,
+         Covered          = b_cover1,
+         High_Temperature = b_high_temp_mean,
+         Site_Error       = sd_group__Intercept)  %>% 
+  gather() %>% 
+  mutate(key=factor(key, levels=c("Intercept","Covered","High_Temperature","Site_Error"))) %>%
+  ggplot(aes(x=value, group=key)) +
+  geom_histogram(color="grey92", fill="grey67", size=.2) +
+  stat_pointinterval(aes(y=0), point_interval=mode_hdi, .width=c(.95, .50)) +
+  scale_y_continuous(NULL, breaks=NULL) +
+  theme_grey() +
+  theme(panel.grid=element_blank()) +
+  facet_wrap(~key, scales="free_x") 
+# the uniform intervals look odd
+
+## plot the PRIOR and the POSTERIOR by variable to compare
+cover.pp <- data.frame(prior=prior1$b_cover1, posterior=post1$b_cover1, chain=post1$chain)
+cover.pp2 <- melt(cover.pp)
+
+# plot each chain separately
+ggplot(data=cover.pp2, aes(x=value, fill=variable, color=variable)) +
+  geom_density(size=1, alpha=0.5) +
+  facet_wrap(~chain) + # , labeller=c("Chain 1","Chain 2","Chain 3")
+  theme(panel.grid=element_blank()) +
+  theme_light() +
+  labs(title="Covered",
+       x    =expression(beta)) +
+  xlim(-20,20)
+
+# plot all chains and 1 prior
+cover.pp2.post <- cover.pp2[cover.pp2$variable=='posterior',]
+cover.pp2.prior <- cover.pp2[cover.pp2$variable=='prior' & cover.pp2$chain==1 ,]
+
+ggplot(data=cover.pp2.post, aes(x=value, fill=chain, color=chain)) +
+  geom_density(size=0.7, alpha=0.1) +
+  theme(panel.grid=element_blank()) +
+  theme_light() +
+  geom_density(data=cover.pp2.prior, aes(x=value), color='black', fill=NA, size=1) +
+  xlim(-8,8)
+  
 
 
-
-
-
-
-
-
-
+######################################################################
 sessionInfo()
