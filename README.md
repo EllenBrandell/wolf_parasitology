@@ -13,5 +13,5 @@ This project is a collaborative effort including researchers from the National P
 Noninvasive genetic methods are a growing field and may provide a safer, cheaper, and easier way to monitor wildlife populations. The goal of this model is to better understand how environmental conditions impact the probability that a scat is successfully genotyped.
 
 # Cestode model
-The goal of this model is to explain associations between
+The goal of this model is to explain associations between wolf social and biological characteristics and parasite infections.
 More to come here.
