@@ -22,6 +22,7 @@ location <- read.csv("locations.csv")
 ######################################## COMBINE DATA
 data1 <- merge(geno, cort, by="scatID", all.x=T)
 data1 <- merge(data1, diameter, by="scatID", all.x=T)
+data1 <- merge(data1, meta[,c(1,4)], by="scatID", all.x=T) # I want site
 
 ###### make a data set of JUST KNOWN WOLVES
 wolves1 <- data1[!is.na(data1$wolfID),]
