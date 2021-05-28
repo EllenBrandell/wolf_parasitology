@@ -14,15 +14,31 @@ library(viridis)
 library(cowplot)
 library(bayesplot) # for plotting posterior draws of a Bayesian model
 
-# load data
-data.all <- read.csv("success_data_all.csv")
+# load data:
+setwd("~/Desktop/scat_project/DATA/data_summaries")
+# individual scat data
+# geno <- read.csv("all_geno_sex_results.csv")
+# environmental data
+success <- read.csv("sent_successful.csv")
+success <- success[,c(1,8)] # just need scatID and geno
+meta <- read.csv("scat_metadata.csv")
+location <- read.csv("locations.csv")
+# combine
+data <- merge(success, meta, all.x=T, by="scatID")
+data <- merge(data, location, all.x=T, by="scatID")
+
+# remove those without meta
+data <- data[complete.cases(data),]
+
+# load data from Maddy's csv
+# data.all <- read.csv("success_data_all.csv")
 # keep variables of interest
-vars <- c("scat_id","geno_success","days_elapsed","cover","collection_period","high_temp_mean","total_precip","group")
-data <- data.all[,colnames(data.all) %in% vars]
+# vars <- c("scatID","geno","days_elapsed","cover","period","high_temp_mean","total_precip","site")
+# data <- data.all[,colnames(data.all) %in% vars]
 # make sure variables are correct class
-data <- data %>% mutate_at(vars("scat_id","cover","collection_period","group"), as.factor)
-            # cover 0:open, 1:covered.
-data <- data %>% mutate_at(vars("geno_success","days_elapsed","high_temp_mean","total_precip"), as.numeric)
+data <- data %>% mutate_at(vars("scatID","cover","period","site"), as.factor)
+# cover 0:open, 1:covered.
+data <- data %>% mutate_at(vars("geno","days_elapsed","high_temp_mean","total_precip"), as.numeric)
 # make sure there is not missing data
 summary(is.na(data))
 str(data)
