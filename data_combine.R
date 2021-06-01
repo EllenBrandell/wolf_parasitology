@@ -30,8 +30,8 @@ data1 <- merge(data1, meta[,c(1,4)], by="scatID", all.x=T) # I want site
 ## look at summary information
 table(is.na(data1$wolfID))
 # FALSE  TRUE 
-#  60    50
-60/110*100
+#  49    50
+49/110*100
 
 ###### AGE
 ggplot(data=data1, aes(x=scat_diameter)) + geom_histogram(fill='gray', color='black')
@@ -42,13 +42,18 @@ table(data1$age)/nrow(data1)
 ###### make a data set of JUST KNOWN WOLVES
 wolves1 <- data1[!is.na(data1$wolfID),]
 
+## summarize over wolves
+wolves2 <- wolves1 %>% group_by(wolfID) %>% summarize(sex=sex[1])
+
+
+
 ###### AGE - unique wolves
 table(wolves1$age)
 table(wolves1$age)/nrow(wolves1)
 
 ## sex information
-table(wolves1$sex, useNA="ifany")
-table(wolves1$sex, useNA="ifany")/nrow(wolves1)
+table(wolves2$sex, useNA="ifany")
+table(wolves2$sex, useNA="ifany")/nrow(wolves2)
 
 ###### CORTISOL
 summary(data1$cortisol)
