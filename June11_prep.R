@@ -57,8 +57,15 @@ table(data2$inf)
 
 ## summarize over wolves
 wolf.sum <- data2 %>% group_by(wolfID) %>% summarize(sex=sex[1], cort=median(cortisol), pack=pack[1],
-                                                     e.c.=max(e.c.),e.m.=max(e.m.),t.m.d.=max(t.m.d.))
+                                                     e.c.=max(e.c.),e.m.=max(e.m.),t.m.d.=max(t.m.d.),
+                                                     sites=length(unique(indiv.site)), nsamples=n())
 wolf.sum$inf <- wolf.sum$e.c.+wolf.sum$e.m.+wolf.sum$t.m.d.
+wolf.sum$inf <- ifelse(wolf.sum$inf>1,1,wolf.sum$inf)
+
+## look at how many UNIQUE sampling occasions each repeated wolf had
+repeated <- wolf.sum[wolf.sum$nsamples>1,]
+table(repeated$sites)
+
 
 ## parasite species
 table(wolf.sum$e.c.)
