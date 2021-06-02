@@ -56,26 +56,29 @@ wolf.sum <- wolves1 %>% group_by(wolfID) %>% summarize(sex=sex[1], ages=length(u
                                                        pack=pack[1],
                                                      e.c.=max(e.c.),e.m.=max(e.m.),t.m.d.=max(t.m.d.),
                                                      sites=length(unique(indiv.site)), nsamples=n())
+table(wolf.sum$ages)
+
 table(wolf.sum$age)
 table(wolf.sum$age)/nrow(wolf.sum)
 
 table(wolf.sum$pack, wolf.sum$age)
 
 a <- ggplot(data=wolves1, aes(x=scat_diameter)) + geom_histogram(fill='gray', color='black') +
-  geom_vline(xintercept=cut, col='red', size=1.3) + xlab("scat diameter") + ggtitle("Scat Diameter Known Wolves")
+  geom_vline(xintercept=cut, col='red', size=1.3) + geom_vline(xintercept=2.5, col='red', size=1.3, linetype="dashed") +
+  xlab("scat diameter") + ggtitle("Scat Diameter Known Wolves")
 a
 b <- ggplot(data=wolves1, aes(y=scat_diameter, x=wolfID, color=wolfID)) + geom_point() + 
   ylab("scat diameter") + ggtitle("Scat Diameter Known Wolves") + 
   theme(axis.text.x=element_text(angle=90), legend.position="none") +
-  geom_hline(yintercept=cut, col='red', size=0.5)
+  geom_hline(yintercept=cut, col='red', size=0.5) + geom_hline(yintercept=2.5, col='red', size=0.5, linetype="dashed")
 b
 c <- ggplot(data=wolves1, aes(y=scat_diameter, x=age, color=age)) + geom_boxplot() + geom_jitter(width=0.1) +
   ylab("scat diameter") + ggtitle("Scat Diameter Known Wolves") +
-  geom_hline(yintercept=cut, col='red', size=0.7)
+  geom_hline(yintercept=cut, col='red', size=0.7) + geom_hline(yintercept=2.5, col='red', size=0.7, linetype="dashed")
 c
 d <- ggplot(data=wolves1, aes(y=scat_diameter, x=sex, color=sex)) + geom_boxplot() + geom_jitter(width=0.2) +
   ylab("scat diameter") + ggtitle("Scat Diameter Known Wolves") + 
-  geom_hline(yintercept=cut, col='red', size=0.7)
+  geom_hline(yintercept=cut, col='red', size=0.7) + geom_hline(yintercept=2.5, col='red', size=0.7, linetype="dashed")
 d
 
 plot_grid(a,b,c,d, nrow=2, ncol=2)
