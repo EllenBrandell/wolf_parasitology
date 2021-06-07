@@ -213,7 +213,7 @@ mcmc_plot(full.mod,
 
 
 
-
+### Session information
 ```{r}
 sessionInfo()
 ```
