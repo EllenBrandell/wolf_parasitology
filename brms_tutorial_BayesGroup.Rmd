@@ -24,6 +24,7 @@ Overall, it is an easy process from start to finish including model construction
 1. more of a 'black box' - you don't see the full model structure and don't need to write anything out in detail, which I see as a con because you may construct a model that is inappropriate or not functioning the way you intend it to    
 2. trickier to change priors and samplers     
 3. much less adaptable for complex models  
+4. parameter names are set within the **brms** model and can't be changed, just an annoyance  
 
 Based on these lists, I find **brms** very nice for preliminary modeling or for more simple, glmm type of models.
 
@@ -36,7 +37,7 @@ and lots, lots more!
 
 # Getting started
 This document and the some of the data are available in my GitHub repository: wolf_parasitology (link: https://github.com/EllenBrandell/wolf_parasitology). We need a few libraries:
-```{r setup, include=T}
+```{r setup, include=T, fig.align="center"}
 knitr::opts_chunk$set(echo=TRUE, warning=F)
 ## load libraries for analysis
 library(brms) # Bayesian model
@@ -83,9 +84,132 @@ str(data)
 summary(data)
 ```
 
+# Construct and run model
+
+## Using defaults
+```{r, eval=F}
+model <- brm(formula= geno ~ days_elapsed + cover + high_temp_mean + total_precip + period + (1|site),
+            data=data, family=bernoulli(link="logit"))
+```
+
+## Setting our own priors
+There is a nice function where we put in our model and it tells us which parameters we can set priors for:
+```{r}
+get_prior(formula= geno ~ period + cover + high_temp_mean*days_elapsed + total_precip + (1|site),
+          data=data, family=bernoulli(link="logit"))
+
+## PRIORS
+prior.list <- c(set_prior("normal(0,10)", class="b", coef="cover1"),
+                set_prior("normal(0,10)", class="b", coef="high_temp_mean"),
+                set_prior("normal(0,10)", class="b", coef="total_precip"),
+                set_prior("normal(0,10)", class="b", coef="periodwinter"),
+                set_prior("normal(0,10)", class="b", coef="periodz_den"),
+                set_prior("normal(0,10)", class="b", coef="days_elapsed"),
+                prior_string("uniform(0,20)", class="sd", coef="Intercept", group="site", ub=NA))
+
+## MCMC settings
+nburn <- 5000
+niter <- 10000
+nchains <- 3
+```
+I am not totally clear about the different prior setting commands; there are at least 3. **set_prior** can be used for any "typical" beta (class="b") coefficient. **prior_string** is used for the site random effect (class="sd") and sets an upper bound on a variable that technically does not need an upper bound, which will give a warning.
+
+Keep in mind that EACH level of your categorical variables needs its own prior.
+Also note that the parameters have been given new names by **brms** that can't be changed.
+
+```{r, echo=F}
+## RUN MODEL
+full.mod <- brm(formula= geno ~ period + cover + high_temp_mean + days_elapsed + total_precip + (1|site),
+                data=data, family=bernoulli,
+                prior=prior.list,
+                warmup=nburn, iter=niter, chains=nchains)
+```
+
+Let's look at some summaries of the posteriors:
+```{r}
+summary(full.mod)
+# pull out our posterior credible intervals
+head(posterior_summary(full.mod, probs=c(.025, .25, .75, .975)))
+```
+
+# Assess model convergence
+```{r, fig.width=8, fig.height=8}
+# plot(full.mod) # this will spit out density and trace plots for all parameters! we will do it separately. 
+
+mcmc_plot(full.mod, type="neff_hist")    # effective sample size
+# ratio: Neff/N -> closer to 1 is better (lighter); light: between 0.5 and 1 (high); mid: between 0.1 and 0.5 (good); dark: below 0.1 (low)
+
+mcmc_plot(full.mod, type="rhat")         # R hat (~1)
+mcmc_plot(full.mod, type="rhat_hist")    # R hat (~1)
+# pull out specific rhat estimates of interest
+head(rhat(full.mod))
+
+mcmc_plot(full.mod, type="trace")        # trace plots
+mcmc_plot(full.mod, type="acf_bar")      # look at autocorrelation
+mcmc_plot(full.mod, type="dens_overlay") # density plots for each chain
+```
+There are even more types of convergence plots we could look at with **brms**! But these are the main ones.
 
 
+# Posterior summaries
+```{r, fig.width=10, fig.height=10}
+# pull out the posterior samples
+posterior <- as.array(full.mod)
+dim(posterior)
+# number of iterations retained, number of chains, number of parameters:
+dimnames(posterior)
 
+color_scheme_set("red") # pick the color you want for the automated plots, default is blue
+# line plots
+mcmc_intervals(posterior, pars=c("b_Intercept","b_days_elapsed","b_cover1","b_high_temp_mean","b_total_precip","b_periodwinter","b_periodz_den","sd_site__Intercept"))
+# density plots
+mcmc_areas(
+  posterior, 
+  pars=c("b_Intercept","b_days_elapsed","b_cover1","b_high_temp_mean","b_total_precip","b_periodwinter","b_periodz_den","sd_site__Intercept"),
+  prob=0.5, # 50% intervals
+  prob_outer=0.95, # 95%  intervals
+  point_est="mean"
+)
+# histograms
+mcmc_hist(posterior, pars=c("b_Intercept","b_days_elapsed","b_cover1","b_high_temp_mean","b_total_precip","b_periodwinter","b_periodz_den","sd_site__Intercept"))
+```
+
+```{r, fig.width=10, fig.height=10}
+## manual plots of line estimate + density with shading
+post <- posterior_samples(full.mod, add_chain=T) # get posterior in usable form
+
+# intercept
+ggplot(post, aes(x=b_Intercept, y=0)) +
+  stat_halfeye(point_interval=mode_hdi, .width=c(.95, .5)) +
+  scale_y_continuous(NULL, breaks=NULL) +
+  labs(title="Intercept",
+       x    =expression(beta)) +
+  theme(panel.grid=element_blank()) +
+  vline_0()
+
+# UV radiation: open/covered 
+  ggplot(post, aes(x=b_cover1, y=0)) +
+  stat_halfeye(point_interval=mode_hdi, .width=c(.95, .5)) +
+  scale_y_continuous(NULL, breaks=NULL) +
+  labs(title="Covered",
+       x    =expression(beta)) +
+  theme(panel.grid=element_blank()) +
+  vline_0()
+```
+
+
+## Exponentiating
+Since this is a logit model, we may want to exponentiate the coefficients.
+This is easy with the 'transformations="exp"' line:
+```{r, fig.width=10, fig.height=10}
+exp(fixef(full.mod))
+mcmc_plot(full.mod, 
+         type="areas",
+         prob=0.95,
+         transformations="exp") +
+  geom_vline(xintercept=1, color="grey") +
+  xlim(0,3)
+```
 
 
 sessionInfo()
