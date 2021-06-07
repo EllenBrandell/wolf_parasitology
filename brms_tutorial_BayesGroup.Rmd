@@ -2,8 +2,6 @@
 title: "Package brms 'tutorial' for Bayes Group"
 author: "Ellen Brandell"
 date: "June 2021"
-output: html_document
-  toc: true
 ---
 
 # Background
@@ -37,7 +35,7 @@ and lots, lots more!
 
 # Getting started
 This document and the some of the data are available in my GitHub repository: wolf_parasitology (link: https://github.com/EllenBrandell/wolf_parasitology). We need a few libraries:
-```{r setup, include=T, fig.align="center"}
+```{r setup, include=T, fig.align="center", echo=F}
 knitr::opts_chunk$set(echo=TRUE, warning=F)
 ## load libraries for analysis
 library(brms) # Bayesian model
@@ -152,6 +150,8 @@ There are even more types of convergence plots we could look at with **brms**! B
 
 
 # Posterior summaries
+The plots below have other specifics you can add, like labels, etc.
+
 ```{r, fig.width=10, fig.height=10}
 # pull out the posterior samples
 posterior <- as.array(full.mod)
@@ -174,8 +174,8 @@ mcmc_areas(
 mcmc_hist(posterior, pars=c("b_Intercept","b_days_elapsed","b_cover1","b_high_temp_mean","b_total_precip","b_periodwinter","b_periodz_den","sd_site__Intercept"))
 ```
 
+We can also make manual plots of posterior estimates with density shading:
 ```{r, fig.width=10, fig.height=10}
-## manual plots of line estimate + density with shading
 post <- posterior_samples(full.mod, add_chain=T) # get posterior in usable form
 
 # intercept
@@ -188,7 +188,7 @@ ggplot(post, aes(x=b_Intercept, y=0)) +
   vline_0()
 
 # UV radiation: open/covered 
-  ggplot(post, aes(x=b_cover1, y=0)) +
+ggplot(post, aes(x=b_cover1, y=0)) +
   stat_halfeye(point_interval=mode_hdi, .width=c(.95, .5)) +
   scale_y_continuous(NULL, breaks=NULL) +
   labs(title="Covered",
@@ -212,4 +212,8 @@ mcmc_plot(full.mod,
 ```
 
 
+
+
+```{r}
 sessionInfo()
+```
