@@ -91,15 +91,13 @@ b <- ggplot(data=wolf.sum, aes(x=cort)) + geom_histogram(fill='gray', color='bla
   ggtitle("Median Cortisol Measurements") + xlab("cortisol")
 a
 b
-
 c <- ggplot(data=wolf.sum, aes(x=sex, y=cort, color=sex)) + geom_boxplot() + geom_jitter(width=0.2) +
   ggtitle("Median Cortisol Measurements") + ylab("cortisol") + xlab("sex") + theme(legend.position="none")
 c
-
 d <- ggplot(data=wolf.sum, aes(x=pack, y=cort, color=pack)) + geom_boxplot() + geom_jitter(width=0.2) +
   ggtitle("Median Cortisol Measurements") + ylab("cortisol") + xlab("pack") +theme(legend.position="none")
 d
-  
+
 plot_grid(a,b,c,d, nrow=2)
 ggsave("cortisol_plots.png", height=10, width=10, units="in", dpi=250)
 
