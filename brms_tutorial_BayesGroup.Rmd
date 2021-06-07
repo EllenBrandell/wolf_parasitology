@@ -8,39 +8,84 @@ output: html_document
 
 # Background
 
-This is a document for the Mastering Bayes working group, as a simple starting guide for using the package **brms** for Bayesian modeling. **brms** uses Stan for modeling
+This is a document for the Mastering Bayes working group, as a simple starting guide for using the package **brms** for Bayesian modeling. This tutorial is by no means extensive, but rather how I have found **brms** useful (or not) in the last month of working with it. 
 
 ### Pros
+1. easy and familiar implementation - writing models is similar to **lme4**  
+2. automated plotting functions that make nice outputs  
+3. nice online user guides and examples  
+4. **brms** tends to give you detailed warnings instead of errors, which provides you with information you need without voiding your model   
 
-
+Overall, it is an easy process from start to finish including model construction, running MCMC, error/warning checking, assessing outputs, and making plots. I did not plan to talk about this, but you actually can use **brms** plotting functions for other packages such as **nimble**, but need to manipulate the posterior samples, which can add some complications but is really handy.
 
 ### Cons
+**brms** relies more on default settings than packages like **rjags** or **nimble**. In some ways, this makes **brms** easier to work with, but I believe this can be more harmful than helpful for the following reasons:
 
+1. more of a 'black box' - you don't see the full model structure and don't need to write anything out in detail, which I see as a con because you may construct a model that is inappropriate or not functioning the way you intend it to    
+2. trickier to change priors and samplers     
+3. much less adaptable for complex models  
 
-## Getting started
-All of this is available in my GitHub repository: 
+Based on these lists, I find **brms** very nice for preliminary modeling or for more simple, glmm type of models.
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+### Other information + links
+* **brms** uses Stan for Bayesian modeling and running MCMC   
+* CRAN manual: https://cran.r-project.org/web/packages/brms/brms.pdf   
+* https://www.rensvandeschoot.com/tutorials/generalised-linear-models-with-brms/  
+* http://mjskay.github.io/tidybayes/articles/tidy-brms.html  
+and lots, lots more!
+
+# Getting started
+This document and the some of the data are available in my GitHub repository: wolf_parasitology (link: https://github.com/EllenBrandell/wolf_parasitology). We need a few libraries:
+```{r setup, include=T}
+knitr::opts_chunk$set(echo=TRUE, warning=F)
+## load libraries for analysis
+library(brms) # Bayesian model
+# library(sjstats) # calculate intra-class correlation (ICC), we don't use this here
+library(tidybayes) # for analysis of posterior draws of a Bayesian model
+## load libraries for plotting
+library(tidyverse)
+library(viridis)
+library(cowplot)
+library(bayesplot) # for plotting posterior draws of a Bayesian model
+```
+
+*Please do not share this document or data* but feel free to download this tutorial to your computer to mess around. These data are unpublished (in the works!) and not in a fully usable form. If you would like the full dataset I used here, please reach out.
+
+## Project background
+In brief, in this project, I have two aims that involve using **brms**:   
+1. Examine the associations between wolf endoparasite infections and wolf social and biological characteristics;  
+2. Examine how noninvasively-collected wolf samples were affected by environmental conditions with respect to the success of wolf genotyping.  
+Wolf scat samples were collected and analyzed for parasites, stress, and wolves and parasites (cestodes) were both genotyped.
+*See more in the Read Me file in the GitHub repository.*
+
+Here we are just going to be looking at goal #2. The response variable is *genotyping success*, a binary variable indicating whether or not a wolf scat sample was successfully genotyped to individual (0=unsuccessful / 1=successful). The explanatory variables are environmental variables known to influence host DNA quality and amplification efficacy: temperature, exposure to UV radiation, precipitation, time from deposit to collection, sampling period, and a random effect for site (i.e., multiple scats could be collected at one site).
+
+### Load the data
+```{r}
+setwd("~/Desktop/scat_project/DATA/data_summaries")
+success <- read.csv("sent_successful.csv") # indicates which samples were successfully genotyped
+success <- success[,c(1,8)] # just need scatID and geno success information
+meta <- read.csv("scat_metadata.csv") # environmental data
+# combine data
+data <- merge(success, meta, all.x=T, by="scatID")
+```
+
+Clean the data and take a look:
+```{r}
+# remove those without meta
+data <- data[complete.cases(data),]
+data <- data %>% mutate_at(vars("scatID","cover","period","site"), as.factor)
+# cover 0:open, 1:covered.
+data <- data %>% mutate_at(vars("geno","days_elapsed","high_temp_mean","total_precip"), as.numeric)
+# make sure there is not missing data
+summary(is.na(data))
+str(data)
+summary(data)
 ```
 
 
-## R Markdown
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
 
-```{r cars}
-summary(cars)
-```
 
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+sessionInfo()
