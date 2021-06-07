@@ -198,6 +198,7 @@ dimnames(posterior)
 color_scheme_set("red")
 # line plots
 mcmc_intervals(posterior, pars=c("b_Intercept","b_days_elapsed","b_cover1","b_high_temp_mean","b_total_precip","b_periodwinter","b_periodz_den","sd_site__Intercept"))
+ggsave("CIs_testing_full_model.png", height=8, width=8, units="in", dpi=250)
 # density plots
 mcmc_areas(
   posterior, 
