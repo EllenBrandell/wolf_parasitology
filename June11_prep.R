@@ -81,6 +81,9 @@ table(wolf.sum$inf)/nrow(wolf.sum)
 
 table(wolf.sum$pack)
 
+table(wolf.sum$sex)
+table(wolf.sum$sex)/nrow(wolf.sum)
+
 ### CORTISOL
 summary(data1$cortisol)
 summary(wolf.sum$cort)
