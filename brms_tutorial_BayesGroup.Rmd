@@ -35,8 +35,11 @@ and lots, lots more!
 
 # Getting started
 This document and the some of the data are available in my GitHub repository: wolf_parasitology (link: https://github.com/EllenBrandell/wolf_parasitology). We need a few libraries:
-```{r setup, include=T, fig.align="center", echo=F}
-knitr::opts_chunk$set(echo=TRUE, warning=F)
+```{r setup, include=T, fig.align="center", warning=F, echo=F}
+knitr::opts_chunk$set()
+```
+
+```{r}
 ## load libraries for analysis
 library(brms) # Bayesian model
 # library(sjstats) # calculate intra-class correlation (ICC), we don't use this here
