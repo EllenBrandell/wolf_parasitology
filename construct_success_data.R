@@ -29,5 +29,3 @@ summary(data)
 
 setwd("~/Desktop/scat_project/GitHub/wolf_parasitology")
 write.csv(data, "success_model_data.csv", row.names=F)
-
-# USING TOKEN LOL SO DUMB
